@@ -18,8 +18,9 @@ public enum KarabinerJSONEncoder {
 
     private static func manipulators(for profile: ComposeProfile) throws -> [Manipulator] {
         try validate(profile.sequences)
+        let sequences = profile.sequences.flatMap(variants(for:))
         var manipulators: [Manipulator] = [composeKeyManipulator(profile)]
-        let firstKeys = profile.sequences.map { $0.keys[0] }.uniqued().sorted { $0.symbol < $1.symbol }
+        let firstKeys = sequences.map { $0.keys[0] }.uniqued().sorted { $0.symbol < $1.symbol }
 
         for key in firstKeys {
             manipulators.append(
@@ -32,7 +33,7 @@ public enum KarabinerJSONEncoder {
             )
         }
 
-        for sequence in profile.sequences {
+        for sequence in sequences {
             let output = sequence.output.resolvedText
             manipulators.append(
                 Manipulator(
@@ -87,10 +88,27 @@ public enum KarabinerJSONEncoder {
             guard sequence.keys.count == 2 else {
                 throw ComposeGenerationError.unsupportedSequenceLength(sequence.keys.map(\.symbol))
             }
-            guard seen.insert(sequence.keys).inserted else {
-                throw ComposeGenerationError.duplicateSequence(sequence.keys.map(\.symbol))
+            for variant in variants(for: sequence) {
+                guard seen.insert(variant.keys).inserted else {
+                    throw ComposeGenerationError.duplicateSequence(sequence.keys.map(\.symbol))
+                }
             }
         }
+    }
+
+    private static func variants(for sequence: ComposeSequence) -> [ComposeSequence] {
+        guard sequence.ordering == .unordered, sequence.keys[0] != sequence.keys[1] else {
+            return [sequence]
+        }
+        return [
+            sequence,
+            ComposeSequence(
+                [sequence.keys[1], sequence.keys[0]],
+                inserts: sequence.output,
+                note: sequence.note,
+                ordering: sequence.ordering
+            )
+        ]
     }
 
     private static func shellQuoteSingle(_ text: String) -> String {

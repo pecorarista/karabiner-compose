@@ -38,14 +38,26 @@ public struct ComposeProfile: Sendable {
 }
 
 public struct ComposeSequence: Hashable, Sendable {
+    public enum Ordering: Hashable, Sendable {
+        case unordered
+        case fixed
+    }
+
     public var keys: [KarabinerKey]
     public var output: ComposeOutput
     public var note: String?
+    public var ordering: Ordering
 
-    public init(_ keys: [KarabinerKey], inserts output: ComposeOutput, note: String? = nil) {
+    public init(
+        _ keys: [KarabinerKey],
+        inserts output: ComposeOutput,
+        note: String? = nil,
+        ordering: Ordering = .unordered
+    ) {
         self.keys = keys
         self.output = output
         self.note = note
+        self.ordering = ordering
     }
 }
 
@@ -67,15 +79,11 @@ public enum ComposeOutput: Hashable, Sendable, ExpressibleByStringLiteral {
     }
 }
 
-public func sequence(_ keys: String..., inserts output: ComposeOutput, note: String? = nil) -> ComposeSequence {
-    ComposeSequence(keys.map(KarabinerKey.symbol), inserts: output, note: note)
-}
-
-public func accent(_ marker: String, bases: String, outputs: String, note: String? = nil) -> [ComposeSequence] {
-    let baseKeys = bases.map(String.init)
-    let outputCharacters = outputs.map(String.init)
-    precondition(baseKeys.count == outputCharacters.count, "Accent base and output counts must match for marker \(marker)")
-    return zip(baseKeys, outputCharacters).map { base, output in
-        sequence(marker, base, inserts: .text(output), note: note)
-    }
+public func sequence(
+    _ keys: String...,
+    inserts output: ComposeOutput,
+    note: String? = nil,
+    ordering: ComposeSequence.Ordering = .unordered
+) -> ComposeSequence {
+    ComposeSequence(keys.map(KarabinerKey.symbol), inserts: output, note: note, ordering: ordering)
 }
