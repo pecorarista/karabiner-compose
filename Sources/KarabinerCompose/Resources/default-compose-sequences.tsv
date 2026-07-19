@@ -1,0 +1,97 @@
+char1	char2	composed	composedCharName	ordered
+a	e	æ
+o	e	œ
+A	E	Æ
+O	E	Œ
+a	h	ɑ		true
+a	w	ɔ		true
+e	h	ɛ		true
+e	e	ə		true
+t	e		latinSmallLetterTurnedE	true
+t	E		latinCapitalLetterTurnedE	true
+u	h	ʊ		true
+-	a	ā
+-	e	ē
+-	i	ī
+-	o	ō
+-	u	ū
+-	A	Ā
+-	E	Ē
+-	I	Ī
+-	O	Ō
+-	U	Ū
+^	a	â
+^	e	ê
+^	i	î
+^	o	ô
+^	u	û
+^	A	Â
+^	E	Ê
+^	I	Î
+^	O	Ô
+^	U	Û
+`	a	à
+`	e	è
+`	i	ì
+`	o	ò
+`	u	ù
+`	A	À
+`	E	È
+`	I	Ì
+`	O	Ò
+`	U	Ù
+'	a	á
+'	e	é
+'	i	í
+'	o	ó
+'	u	ú
+'	A	Á
+'	E	É
+'	I	Í
+'	O	Ó
+'	U	Ú
+"	a	ä
+"	e	ë
+"	i	ï
+"	o	ö
+"	u	ü
+"	A	Ä
+"	E	Ë
+"	I	Ï
+"	O	Ö
+"	U	Ü
+.	a	ạ
+.	e	ẹ
+.	i	ị
+.	o	ọ
+.	u	ụ
+.	h	ḥ
+.	s	ṣ
+.	A	Ạ
+.	E	Ẹ
+.	I	Ị
+.	O	Ọ
+.	U	Ụ
+c	,	ç
+s	,	ş
+t	,	ţ
+s	;	ș
+t	;	ț
+C	,	Ç
+S	,	Ş
+T	,	Ţ
+S	;	Ș
+T	;	Ț
+/	i	ɨ
+/	o	ø
+/	O	Ø
+n	g	ŋ
+t	h	θ
+d	h	ð
+z	h	ʒ
+s	r	ʂ
+z	r	ʐ
+g	h	ɣ
+:	:	ː
+|	'	ˈ
+|	,	ˌ

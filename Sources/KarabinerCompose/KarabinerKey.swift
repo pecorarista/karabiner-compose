@@ -45,6 +45,7 @@ public struct KarabinerKey: Hashable, Sendable, ExpressibleByStringLiteral {
         for letter in "abcdefghijklmnopqrstuvwxyz" {
             let symbol = String(letter)
             map[symbol] = .plain(symbol)
+            map[symbol.uppercased()] = .modified(symbol.uppercased(), keyCode: symbol, mandatoryModifiers: ["left_shift"])
         }
         for digit in "0123456789" {
             let symbol = String(digit)

@@ -15,7 +15,10 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "KarabinerCompose"
+            name: "KarabinerCompose",
+            resources: [
+                .process("Resources")
+            ]
         ),
         .testTarget(
             name: "KarabinerComposeTests",
