@@ -36,6 +36,15 @@ import Testing
     }
 }
 
+@Test func tsvRejectsUnsupportedASCIIComposeKeys() {
+    #expect(throws: ComposeSequenceTSVError.self) {
+        _ = try ComposeSequenceTSV.decode("""
+        sequence	composed	composedCharName	ordered
+        a e	æ
+        """)
+    }
+}
+
 @Test func namedCharactersUseCodePoints() {
     #expect(NamedCharacter.resolve("latinSmallLetterScriptG") == "ɡ")
     #expect(NamedCharacter.resolve("latinSmallLetterScriptG") != "g")

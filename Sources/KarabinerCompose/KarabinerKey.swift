@@ -30,6 +30,10 @@ public struct KarabinerKey: Hashable, Sendable, ExpressibleByStringLiteral {
         return key
     }
 
+    static func supportedSymbol(_ symbol: String) -> KarabinerKey? {
+        symbolMap[symbol]
+    }
+
     public var event: KarabinerEvent {
         KarabinerEvent(
             keyCode: keyCode,
