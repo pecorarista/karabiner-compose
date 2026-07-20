@@ -20,29 +20,40 @@ public enum KarabinerJSONEncoder {
         try validate(profile.sequences)
         let sequences = profile.sequences.flatMap(variants(for:))
         var manipulators: [Manipulator] = [composeKeyManipulator(profile)]
-        let firstKeys = sequences.map { $0.keys[0] }.uniqued().sorted { $0.symbol < $1.symbol }
-
-        for key in firstKeys {
-            manipulators.append(
-                Manipulator(
-                    description: "Compose start, \(key.symbol)",
-                    from: key.event,
-                    to: [.setVariable(profile.stateName, state(for: key))],
-                    conditions: [.variableIf(profile.stateName, .string("start"))]
-                )
-            )
-        }
+        var seenIntermediateTransitions: Set<IntermediateTransition> = []
 
         for sequence in sequences {
-            let output = sequence.output.resolvedText
-            manipulators.append(
-                Manipulator(
-                    description: "Compose \(sequence.keys.map(\.symbol).joined(separator: " ")) -> \(output)",
-                    from: sequence.keys[1].event,
-                    to: pasteText(output, stateName: profile.stateName),
-                    conditions: [.variableIf(profile.stateName, state(for: sequence.keys[0]))]
-                )
-            )
+            for index in sequence.keys.indices {
+                let fromState = state(for: sequence.keys.prefix(index))
+                let key = sequence.keys[index]
+                let keys = Array(sequence.keys.prefix(index + 1))
+
+                if index == sequence.keys.index(before: sequence.keys.endIndex) {
+                    let output = sequence.output.resolvedText
+                    manipulators.append(
+                        Manipulator(
+                            description: "Compose \(keySymbols(in: sequence.keys)) -> \(output)",
+                            from: key.event,
+                            to: pasteText(output, stateName: profile.stateName),
+                            conditions: [.variableIf(profile.stateName, fromState)]
+                        )
+                    )
+                } else {
+                    let transition = IntermediateTransition(fromState: fromState, key: key)
+                    guard seenIntermediateTransitions.insert(transition).inserted else {
+                        continue
+                    }
+
+                    manipulators.append(
+                        Manipulator(
+                            description: "Compose \(keySymbols(in: keys))...",
+                            from: key.event,
+                            to: [.setVariable(profile.stateName, state(for: keys))],
+                            conditions: [.variableIf(profile.stateName, fromState)]
+                        )
+                    )
+                }
+            }
         }
 
         manipulators.append(
@@ -54,6 +65,48 @@ public enum KarabinerJSONEncoder {
             )
         )
         return manipulators
+    }
+
+    private static func state(for keys: ArraySlice<KarabinerKey>) -> VariableValue {
+        state(for: Array(keys))
+    }
+
+    private static func state(for keys: [KarabinerKey]) -> VariableValue {
+        guard !keys.isEmpty else {
+            return .string("start")
+        }
+        return .string("compose_\(keySymbols(in: keys, separator: "_"))")
+    }
+
+    private static func keySymbols(in keys: [KarabinerKey], separator: String = " ") -> String {
+        keys.map(\.symbol).joined(separator: separator)
+    }
+
+    private struct IntermediateTransition: Hashable {
+        var fromState: VariableValue
+        var key: KarabinerKey
+    }
+
+    private static func validate(_ sequences: [ComposeSequence]) throws {
+        var seen: Set<[KarabinerKey]> = []
+        let sequences = sequences.flatMap(variants(for:))
+        for sequence in sequences {
+            guard sequence.keys.count >= 2 else {
+                throw ComposeGenerationError.unsupportedSequenceLength(sequence.keys.map(\.symbol))
+            }
+            guard seen.insert(sequence.keys).inserted else {
+                throw ComposeGenerationError.duplicateSequence(sequence.keys.map(\.symbol))
+            }
+        }
+
+        for sequence in sequences {
+            for other in sequences where sequence.keys.count < other.keys.count && other.keys.starts(with: sequence.keys) {
+                throw ComposeGenerationError.ambiguousSequencePrefix(
+                    sequence.keys.map(\.symbol),
+                    other.keys.map(\.symbol)
+                )
+            }
+        }
     }
 
     private static func composeKeyManipulator(_ profile: ComposeProfile) -> Manipulator {
@@ -78,26 +131,8 @@ public enum KarabinerJSONEncoder {
         ]
     }
 
-    private static func state(for key: KarabinerKey) -> VariableValue {
-        .string("compose_\(key.symbol)")
-    }
-
-    private static func validate(_ sequences: [ComposeSequence]) throws {
-        var seen: Set<[KarabinerKey]> = []
-        for sequence in sequences {
-            guard sequence.keys.count == 2 else {
-                throw ComposeGenerationError.unsupportedSequenceLength(sequence.keys.map(\.symbol))
-            }
-            for variant in variants(for: sequence) {
-                guard seen.insert(variant.keys).inserted else {
-                    throw ComposeGenerationError.duplicateSequence(sequence.keys.map(\.symbol))
-                }
-            }
-        }
-    }
-
     private static func variants(for sequence: ComposeSequence) -> [ComposeSequence] {
-        guard sequence.ordering == .unordered, sequence.keys[0] != sequence.keys[1] else {
+        guard sequence.ordering == .unordered, sequence.keys.count == 2, sequence.keys[0] != sequence.keys[1] else {
             return [sequence]
         }
         return [
@@ -118,14 +153,17 @@ public enum KarabinerJSONEncoder {
 
 public enum ComposeGenerationError: Error, CustomStringConvertible {
     case duplicateSequence([String])
+    case ambiguousSequencePrefix([String], [String])
     case unsupportedSequenceLength([String])
 
     public var description: String {
         switch self {
             case let .duplicateSequence(keys):
                 "Duplicate compose sequence: \(keys.joined(separator: " "))"
+            case let .ambiguousSequencePrefix(prefix, sequence):
+                "Ambiguous compose sequence prefix: \(prefix.joined(separator: " ")) is also a prefix of \(sequence.joined(separator: " "))"
             case let .unsupportedSequenceLength(keys):
-                "Only two-key compose sequences are supported for now: \(keys.joined(separator: " "))"
+                "Compose sequences must contain at least two keys: \(keys.joined(separator: " "))"
         }
     }
 }
