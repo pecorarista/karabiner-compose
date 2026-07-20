@@ -153,6 +153,14 @@ private struct ComposeSequenceDefinition {
             throw ComposeSequenceTSVError.invalidSequenceKey(lineNumber, value)
         }
 
-        return value.unicodeScalars.map { KarabinerKey.symbol(String($0)) }
+        var keys: [KarabinerKey] = []
+        for scalar in value.unicodeScalars {
+            let symbol = String(scalar)
+            guard let key = KarabinerKey.supportedSymbol(symbol) else {
+                throw ComposeSequenceTSVError.invalidSequenceKey(lineNumber, value)
+            }
+            keys.append(key)
+        }
+        return keys
     }
 }
